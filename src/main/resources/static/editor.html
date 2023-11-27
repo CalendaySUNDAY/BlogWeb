@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="stylesheet" href="nicepage.css" media="screen">
+    <link rel="stylesheet" href="Home.css" media="screen">
+
     <meta charset="UTF-8">
     <title>Title</title>
     <style>
@@ -9,29 +12,104 @@
             margin: 0;
             padding: 0;
         }
+
         #editor {
             height: 100%;
         }
+
+        #save-button {
+            position: fixed; /* Or absolute, depending on your layout */
+            right: 10px; /* Distance from the right edge of the viewport */
+            bottom: 10px; /* Distance from the bottom edge of the viewport */
+            z-index: 1000; /* Ensures the button is above other elements */
+        }
+
+        #return-button {
+            position: fixed; /* Or absolute, depending on your layout */
+            left: 10px; /* Distance from the right edge of the viewport */
+            bottom: 10px; /* Distance from the bottom edge of the viewport */
+            z-index: 1000; /* Ensures the button is above other elements */
+        }
+
     </style>
-    <link rel="stylesheet" href="editor.md/css/editormd.min.css" />
+    <link rel="stylesheet" href="editor.md/css/editormd.min.css"/>
     <script src="jquery.js"></script>
     <script src="editor.md/editormd.min.js"></script>
     <script type="text/javascript">
-        $(function() {
-            var editor = editormd("editor", {
+        var editor;
+        $(function () {
+            editor = editormd("editor", {
                 width: "100%",
                 height: "100%",
-                path : "editor.md/lib/",
+                path: "editor.md/lib/",
                 imageUpload: true, // 开启图片上传功能
-                imageFormats   : ["jpg", "jpeg", "gif", "png", "bmp", "webp"],
+                imageFormats: ["jpg", "jpeg", "gif", "png", "bmp", "webp"],
                 imageUploadURL: "/api/blogs/uploadPicture", // 设置后端图片上传处理URL
             });
         });
+        addEventListener('DOMContentLoaded', () => {
+            document.getElementById('save-button').addEventListener('click', function () {
+                var title = prompt("Please enter the title of your blog post:", "My Blog Post");
+                if (title === null || title === "") {
+                    // 用户点击了取消或者没有输入标题
+                    console.log('The user cancelled the upload or entered no title.');
+                } else {
+                    var markdownContent = editor.getMarkdown(); // 获取Markdown内容
+                    var guid = 'some-unique-guid'; // 应由实际逻辑生成或获取
+
+                    // 在此处调用上传逻辑
+                    saveBlog(guid, title, markdownContent);
+                }
+            });
+            document.getElementById('return-button').addEventListener('click', function () {
+                var sure = confirm("确定要返回吗？");
+                if (sure === true) {
+                    window.location.href = "index.html";
+                }else {
+
+                }
+            });
+        });
+
+        function saveBlog(guid, title, content) {
+            // 使用FormData来构建请求体
+            var formData = new FormData();
+            formData.append('guid', guid);
+            formData.append('title', title);
+            formData.append('content', content);
+
+            // 通过AJAX将内容发送到服务器
+            fetch('/api/blogs/saveBlog', {
+                method: 'POST',
+                body: formData // 使用FormData发送数据，不需要设置Content-Type头
+            })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Network response was not ok.');
+                })
+                .then(data => console.log('Blog saved successfully:', data))
+                .catch(error => console.error('Error saving blog:', error));
+        }
+
     </script>
 </head>
 <body>
 <div id="editor">
     <textarea style="display:none;">### Hello Editor.md !</textarea>
 </div>
+<a id="save-button"
+   class="u-active-palette-2-base u-align-center u-border-none u-btn u-btn-round u-button-style u-hover-palette-2-base u-palette-1-base u-radius-50 u-btn-1 animated customAnimationOut"
+   data-animation-name="customAnimationIn" data-animation-duration="1500" data-animation-delay="1000"
+   style="will-change: transform, opacity; animation-duration: 500ms;">上传</a>
+
+<a id="return-button"
+   class="u-active-palette-2-base u-align-center u-border-none u-btn u-btn-round u-button-style u-hover-palette-2-base u-palette-1-base u-radius-50 u-btn-1 animated customAnimationOut"
+   data-animation-name="customAnimationIn" data-animation-duration="1500" data-animation-delay="1000"
+   style="will-change: transform, opacity; animation-duration: 500ms">返回</a>
+<script>
+
+</script>
 </body>
 </html>

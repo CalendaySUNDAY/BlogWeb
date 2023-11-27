@@ -44,7 +44,14 @@ async function loadBlogDiv() {
 function createBlogPostHTML(post) {
     // Extract the name and head for each post
     const title = post.name.replace('.md', ''); // Removing the .md extension
-    const content = post.head.replace('›', ''); // Adjusting the head content
+    // 去除UUID
+    var title_string = title.replace(/^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}-/g, '');
+    var content = post.head.replace('›', ''); // 去除›
+    //使用正则表达式去除前面的多个#
+    content = content.replace(/^(#)+/, '');
+    // content = content.replace('/^#+/', '');
+
+
 
     // Create the HTML block, using template literals
     return `
@@ -52,7 +59,7 @@ function createBlogPostHTML(post) {
       <div class="u-container-layout u-similar-container u-valign-top u-container-layout-1">
         <!--blog_post_header-->
         <h2 class="u-blog-control u-text u-text-1">
-         ${title}
+         ${title_string}
         </h2><!--/blog_post_header-->
         
           <img alt="" class="u-blog-control u-expanded-width u-image u-image-default u-image-1"

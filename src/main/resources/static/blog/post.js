@@ -13,7 +13,7 @@ function getQueryVariable(variable) {
 }
 
 function loadBlogContent(postId) {
-    fetch(`/api/blogs/${postId}`)
+    fetch(`/api/blogs/content?id=${postId}`)
         .then(response => response.text())
         .then(markdown => {
             // 使用marked.js将Markdown转换为HTML

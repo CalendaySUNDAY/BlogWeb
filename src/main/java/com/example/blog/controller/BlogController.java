@@ -1,5 +1,6 @@
 package com.example.blog.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -29,8 +30,8 @@ public class BlogController {
     }
 
 
-    @GetMapping("/{id}")
-    public ResponseEntity<String> getBlogPost(@PathVariable String id) {
+    @GetMapping("/content")
+    public ResponseEntity<String> getBlogPost(@RequestParam("id") String id) {
         try {
             String markdownPath = "classpath:/blogs/" + id + ".md";
             // 直接读取文件内容
@@ -75,7 +76,9 @@ public class BlogController {
     }
 
     @PostMapping("/uploadPicture")
-    public ResponseEntity<String> getPicture(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<String> getPicture(@RequestParam("guid") String guid,
+                                             @RequestPart("editormd-image-file") MultipartFile file) throws JsonProcessingException {
+        ObjectMapper objectMapper = new ObjectMapper();
         try {
             // 检查文件是否为空
             if (file.isEmpty()) {
@@ -92,7 +95,7 @@ public class BlogController {
             String filename = UUID.randomUUID().toString() + "-" + file.getOriginalFilename();
 
             // 设置文件存储路径
-            Path path = Paths.get("blogs/pic_cache/" + filename);
+            Path path = Paths.get("src/main/resources/blogs/pic_cache/" + filename);
 
             // 确保目录存在
             if (!Files.exists(path.getParent())) {
@@ -102,12 +105,56 @@ public class BlogController {
             // 保存文件到服务器
             Files.copy(file.getInputStream(), path);
 
+            //构建返回数据
             // 返回pic_id（在这个场景中就是文件名）
-            return ResponseEntity.ok(filename);
-
+            String jsonResponse = objectMapper.writeValueAsString(new UploadResponse(1, "文件上传成功", "/api/blogs/pic_cache/" + filename));
+            return ResponseEntity.ok(jsonResponse);
         } catch (IOException e) {
             e.printStackTrace();
-            return ResponseEntity.internalServerError().body("Could not store the file");
+            String jsonResponse = objectMapper.writeValueAsString(new UploadResponse(0, "上传失败", ""));
+            return ResponseEntity.badRequest().body(jsonResponse);
+        }
+    }
+
+    @GetMapping("/pic_cache/{filename}")
+    public ResponseEntity<?> getPicture(@PathVariable String filename) {
+        try {
+            // 读取文件并返回
+            return ResponseEntity.ok(resourceLoader.getResource("file:src/main/resources/blogs/pic_cache/" + filename));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/saveBlog")
+    public ResponseEntity<String> saveBlog(@RequestPart("guid") String guid,
+                                           @RequestPart("title") String title,
+                                           @RequestPart("content") String content) throws JsonProcessingException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            // 生成文件名，这里使用了UUID来确保文件名的唯一性
+            String filename = UUID.randomUUID().toString() + "-" + title + ".md";
+
+            // 设置文件存储路径
+            Path path = Paths.get("src/main/resources/blogs/" + filename);
+
+            // 确保目录存在
+            if (!Files.exists(path.getParent())) {
+                Files.createDirectories(path.getParent());
+            }
+
+            // 保存文件到服务器
+            Files.write(path, content.getBytes());
+
+            //构建返回数据
+            // 返回pic_id（在这个场景中就是文件名）
+            String jsonResponse = objectMapper.writeValueAsString(new UploadResponse(1, "文件上传成功", "/api/blogs/" + filename));
+            return ResponseEntity.ok(jsonResponse);
+        } catch (IOException e) {
+            e.printStackTrace();
+            String jsonResponse = objectMapper.writeValueAsString(new UploadResponse(0, "上传失败", ""));
+            return ResponseEntity.badRequest().body(jsonResponse);
         }
     }
 
@@ -118,6 +165,32 @@ public class BlogController {
         } catch (IOException e) {
             e.printStackTrace();
             return "";
+        }
+    }
+
+    // 内部类用于创建响应体
+    class UploadResponse {
+        private final int success;
+        private final String message;
+        private final String url;
+
+        public UploadResponse(int success, String message, String url) {
+            this.success = success;
+            this.message = message;
+            this.url = url;
+        }
+
+        // 必要的getters
+        public int getSuccess() {
+            return success;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public String getUrl() {
+            return url;
         }
     }
 }
